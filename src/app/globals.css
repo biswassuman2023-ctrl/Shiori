@@ -61,11 +61,17 @@
   --shadow-lifted: 0 2px 4px -1px rgb(41 39 37 / 0.05), 0 8px 24px -6px rgb(41 39 37 / 0.1);
 
   /* ---- Motion -----------------------------------------------------------
-     Calm, not bouncy. Nothing in this product should feel like a slot machine. */
+     Calm, not bouncy. Nothing in this product should feel like a slot machine.
+     `--duration-*` and `--ease-*` are Tailwind v4's actual namespaces for the
+     `duration-*` / `ease-*` utilities (transition-duration and
+     transition-timing-function) — an earlier `--animate-duration-*` naming
+     here generated no utilities at all, since `--animate-*` is reserved for
+     the `animate-*` keyframe-animation utility. Fixed when the first
+     component came along that needed these tokens to actually work. */
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
-  --animate-duration-fast: 120ms;
-  --animate-duration-base: 200ms;
-  --animate-duration-slow: 320ms;
 }
 
 /* ===========================================================================

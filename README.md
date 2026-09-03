@@ -14,11 +14,18 @@ decide _where you join it_; spaced repetition decides _what you review today_.
 
 ## Status
 
-**Foundation only.** The repository, database schema, security model, design
-tokens and routing skeleton are in place. No feature is implemented — every
-route renders a placeholder.
+**One real lesson.** The foundation (repository, database schema, security
+model, design tokens, routing skeleton) is in place, and the first vertical
+slice is built: `/learn/hiragana/gojuon/a-i-u-e-o` — a real, database-backed
+lesson teaching あいうえお, with practice, retry, progress persistence and SRS
+card creation. Every other route still renders a placeholder.
 
-Next: the first vertical slice — Hiragana あいうえお, end to end.
+Not yet run against a live database in this environment — see
+[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for exactly what that leaves
+unverified.
+
+Next: everything else, one skill at a time — see
+[docs/PRODUCT.md](docs/PRODUCT.md) ("Build order").
 
 ## Quick start
 

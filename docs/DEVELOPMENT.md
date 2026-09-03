@@ -88,13 +88,25 @@ is a decision to record here, not a convenience.
 
 ### Database types
 
-`src/types/database.generated.ts` is **generated**. Do not hand-edit it. It is
-committed as an empty placeholder so a clean checkout builds; run
-`npm run db:types` to fill it in.
+`src/types/database.generated.ts` is meant to be **generated** — normally you
+never hand-edit it, and `supabase.from("levels")` simply doesn't typecheck
+until you run `npm run db:types`. That remains the rule.
 
-Consequence: `supabase.from("levels")` does not typecheck until you generate.
-That is intentional — it prompts generation rather than hand-written table
-types.
+**Current exception, and why it exists:** as of the Hiragana vertical slice,
+this file is a hand-authored stand-in, not real CLI output — Docker has never
+been available in this environment, so `db:types` has never run against a real
+Postgres instance. The file's own header says so prominently and lists exactly
+what it covers: only the tables the current slice queries (`levels`, `units`,
+`lessons`, `lesson_content`, `lesson_content_items`, `kana`, `media_assets`,
+`questions`, `question_options`, `user_curriculum_progress`, `srs_cards`) —
+deliberately not the full schema, so nothing accidentally typechecks against a
+table shape nobody has verified.
+
+The moment Docker is available, run `npm run db:reset && npm run db:types` and
+this file is **overwritten wholesale** by the real thing — there is nothing in
+it worth preserving by hand. Until then, treat every type derived from it as
+"believed correct against the migrations, not verified against Postgres" — the
+same caveat that applies to the migrations themselves.
 
 Use the helpers in `src/types/database.ts`:
 
@@ -160,8 +172,10 @@ for the wrong reason).
 
 First Playwright run needs browsers: `npm run test:e2e:install`.
 
-The current e2e suite only asserts that every route resolves. As screens get
-built, those assertions should be **replaced** by real ones, not added to.
+`routes.spec.ts` asserts only that every remaining _placeholder_ route
+resolves. As a screen becomes real, its route should move out of that list
+and get real assertions of its own, the way `lesson.spec.ts` now covers the
+Hiragana lesson — replaced, not added to.
 
 ## Migrations
 
@@ -184,3 +198,12 @@ in the same migration that creates it.
 - TypeScript is pinned to 5.9 rather than 7.x, which is what
   `eslint-config-next` and Next 16 are tested against. Revisit when the
   toolchain catches up.
+- `npm run test:e2e` binds to port 3000 by default (`playwright.config.ts`).
+  On a machine already running another project's dev server on that port,
+  the suite silently exercises the wrong app and every route assertion fails
+  confusingly. Pass a free port explicitly if that happens:
+  `PORT=3477 PLAYWRIGHT_BASE_URL=http://127.0.0.1:3477 npx playwright test`.
+- `tests/e2e/lesson.spec.ts` (the Hiragana lesson flow) is gated behind
+  `RUN_DB_DEPENDENT_E2E=1` and does not run by default — it needs a seeded
+  local Supabase stack, which needs Docker. See the note at the top of that
+  file.

@@ -1,5 +1,3 @@
-import type { LessonBlockType } from "@/types/domain";
-
 /**
  * Shapes for content that is stored as JSON in the database.
  *
@@ -55,25 +53,6 @@ export type InlineNode =
   | { type: "emphasis"; value: string }
   | { type: "japanese"; value: FuriganaText }
   | { type: "code"; value: string };
-
-/* -------------------------------------------------------------------------- */
-/* Lesson blocks                                                               */
-/* -------------------------------------------------------------------------- */
-
-/**
- * A block as the lesson engine will hand it to a renderer.
- *
- * `props` is renderer-specific configuration read from `lesson_content.props`.
- * `itemIds` are the content items the block presents, already ordered.
- */
-export type LessonBlock = {
-  id: string;
-  position: number;
-  type: LessonBlockType;
-  props: Record<string, unknown>;
-  itemIds: string[];
-  questionId: string | null;
-};
 
 /* -------------------------------------------------------------------------- */
 /* Lesson progress                                                             */

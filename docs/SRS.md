@@ -54,12 +54,20 @@ parameters are a reasonable starting point, and can be refit against real
 `srs_reviews` history once enough of it exists, with no reset for existing
 learners.
 
-**Not implemented.** The scheduler will be a pure module —
+**The scheduler itself is not implemented.** It will be a pure module —
 `(card, rating, now) → next card state` — with no database access of its own,
-so it is testable in isolation and swappable. It is not built in this pass:
-`srs_cards.scheduler` stays `'unset'` and no code path creates or advances a
-card yet. This document records the decision so the review engine has
-somewhere to start from, not an implementation.
+so it is testable in isolation and swappable. `srs_cards.scheduler` stays
+`'unset'`, and no code path advances a card's `due_at`, `interval_days`,
+`state` or any other scheduling column yet. This document records the
+decision so the review engine has somewhere to start from, not an
+implementation of it.
+
+**Card creation is implemented**, as of the Hiragana vertical slice — see
+"Card creation" below and `src/lib/lesson-progress/srs.ts`. Creating a card
+in `state: 'new'`, due immediately, needs none of FSRS's parameters; only
+_advancing_ a card after a review does, which is why creation could ship
+ahead of the scheduler without creating cards the scheduler can't later pick
+up correctly.
 
 ## Card creation
 

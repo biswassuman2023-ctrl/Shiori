@@ -1,6 +1,6 @@
 import type { ComponentType } from "react";
 
-import type { LessonBlock } from "@/types/content";
+import type { LessonBlockData } from "@/types/lesson";
 import type { LessonBlockType } from "@/types/domain";
 
 /**
@@ -15,14 +15,15 @@ import type { LessonBlockType } from "@/types/domain";
  * add it to `LESSON_BLOCK_TYPES`, write a renderer, register it below. It does
  * not mean touching any page or lesson component.
  *
- * No renderers are registered yet — the lesson engine is not built. The
- * registry, its contract and its failure mode are established now so the
- * engine has something to build against.
+ * `block` is already fully resolved by the time a renderer sees it — its
+ * content items and question (if any) are populated by
+ * `src/services/lessons.ts`, not looked up by the renderer. That keeps every
+ * renderer a pure, easily-tested presentational component.
  */
 
 /** Every block renderer receives exactly this, and nothing else. */
 export type BlockRendererProps = {
-  block: LessonBlock;
+  block: LessonBlockData;
 };
 
 export type BlockRenderer = ComponentType<BlockRendererProps>;
@@ -30,15 +31,17 @@ export type BlockRenderer = ComponentType<BlockRendererProps>;
 export type BlockRegistry = Partial<Record<LessonBlockType, BlockRenderer>>;
 
 /**
- * TODO — the lesson engine (see docs/LEARNING-ENGINE.md) will register:
- *   prose      -> ProseBlock
- *   kana       -> KanaBlock
- *   vocabulary -> VocabularyBlock
- *   kanji      -> KanjiBlock
- *   grammar    -> GrammarBlock
- *   reading    -> ReadingBlock
- *   listening  -> ListeningBlock
- *   question   -> QuestionBlock
+ * Registered by `src/components/lesson/register-blocks.ts`, imported once
+ * from the lesson route so registration happens exactly once per server
+ * instance:
+ *   prose      -> ProseBlock     (implemented)
+ *   kana       -> KanaBlock      (implemented)
+ *   question   -> QuestionBlock  (implemented)
+ *   vocabulary -> VocabularyBlock  — not yet built
+ *   kanji      -> KanjiBlock       — not yet built
+ *   grammar    -> GrammarBlock     — not yet built
+ *   reading    -> ReadingBlock     — not yet built
+ *   listening  -> ListeningBlock   — not yet built
  */
 const registry: BlockRegistry = {};
 

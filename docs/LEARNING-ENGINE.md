@@ -1,8 +1,10 @@
 # Learning engine
 
 The learning engine decides **what a learner should do next**, and turns a
-lesson row into something on screen. It is not built yet. This document records
-the architecture it must fit into.
+lesson row into something on screen. The second half — rendering a lesson,
+tracking its completion, creating SRS cards from practice — is built, for the
+three block types the Hiragana slice uses. The first half — skill mastery and
+reinforcement, deciding what a _struggling_ learner should see — is not.
 
 ## Two questions, two systems
 
@@ -42,7 +44,8 @@ const Renderer = getBlockRenderer(block.type);
 
 ## The registry
 
-`src/content/registry.ts` — built, tested, and currently empty of renderers.
+`src/content/registry.ts` — built and tested. Three renderers are registered;
+see "Renderers" below for which, and which aren't yet.
 
 ```ts
 registerBlockRenderer("vocabulary", VocabularyBlock);
@@ -57,21 +60,40 @@ const Renderer = getBlockRenderer(block.type); // undefined if unregistered
   containing a block this build cannot draw should **skip the block and keep
   the lesson**, not fail the page.
 
-## Planned renderers
+## Renderers
 
-| Block type   | Renderer          | Presents                                 |
-| ------------ | ----------------- | ---------------------------------------- |
-| `prose`      | `ProseBlock`      | `ProseNode[]` from `props`               |
-| `kana`       | `KanaBlock`       | kana items, stroke order, audio          |
-| `vocabulary` | `VocabularyBlock` | vocabulary items with furigana and audio |
-| `kanji`      | `KanjiBlock`      | kanji items, readings, components        |
-| `grammar`    | `GrammarBlock`    | a grammar point with examples            |
-| `reading`    | `ReadingBlock`    | a passage, sentence by sentence          |
-| `listening`  | `ListeningBlock`  | an audio lesson with segments            |
-| `question`   | `QuestionBlock`   | a question and its options               |
+| Block type   | Renderer          | Presents                                   | Status    |
+| ------------ | ----------------- | ------------------------------------------ | --------- |
+| `prose`      | `ProseBlock`      | `ProseNode[]` from `props`                 | Built     |
+| `kana`       | `KanaBlock`       | kana items, mnemonic, audio if available   | Built     |
+| `question`   | `QuestionBlock`   | a multiple-choice question and its options | Built     |
+| `vocabulary` | `VocabularyBlock` | vocabulary items with furigana and audio   | Not built |
+| `kanji`      | `KanjiBlock`      | kanji items, readings, components          | Not built |
+| `grammar`    | `GrammarBlock`    | a grammar point with examples              | Not built |
+| `reading`    | `ReadingBlock`    | a passage, sentence by sentence            | Not built |
+| `listening`  | `ListeningBlock`  | an audio lesson with segments              | Not built |
 
-None exists. They arrive with the vertical slice that needs them — `KanaBlock`
-and `QuestionBlock` first.
+The three built renderers live in `src/components/lesson/blocks/`, registered
+by `src/components/lesson/register-blocks.ts` — imported once, from the
+_client_ lesson player (`lesson-player.tsx`), not the server route. Server and
+Client Components run in separate module graphs in Next.js; `getBlockRenderer`
+is only ever called from client code, so that is the only place registration
+can usefully happen.
+
+Every renderer receives an already-resolved `LessonBlockData` (its content
+items and question, if any, populated by `src/services/lessons.ts`) — a
+renderer never looks anything up itself, keeping it a pure, easily-tested
+presentational component. `QuestionBlock` is the one exception that needs to
+report _back_ to the lesson player (an answer, and whether this question was
+already completed on an earlier visit); it does that through
+`LessonInteractionContext` rather than an addition to every renderer's props,
+so the "every renderer gets exactly `{ block }`" contract stays true for the
+renderers that don't need it.
+
+`question_type` support today: `multiple_choice` only, since that is the only
+type the Hiragana slice's content uses. `text_input`, `audio_choice`,
+`matching` and `ordering` are modelled in the database
+(`supabase/migrations/20260904001000_questions.sql`) but have no renderer.
 
 ## Adding a lesson format
 

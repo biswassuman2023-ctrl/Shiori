@@ -64,11 +64,19 @@ start; the implementation does not.
 ## Build order
 
 1. **Foundation** — repository, database schema, security, design tokens,
-   routing skeleton. _(current phase)_
-2. **First vertical slice** — Hiragana あいうえお, end to end: sign up →
-   onboarding → learn → hear → practise → complete → save progress → create
-   review cards → review later.
-3. Everything else, one skill at a time.
+   routing skeleton. Done.
+2. **First vertical slice** — Hiragana あいうえお. Built, deliberately scoped
+   down from the original "sign up → ... → review later" description: it
+   covers learn → hear (where an audio asset exists) → practise → complete →
+   save progress → create review cards. It stops at card _creation_ — review
+   (actually studying a due card later) is FSRS's job, and FSRS is decided
+   but not implemented (see docs/SRS.md). "Sign up" became silent anonymous
+   auth rather than a sign-up screen, since building sign-up UI was
+   explicitly out of scope for this slice — see docs/DEVELOPMENT.md and the
+   TODO on linking an anonymous learner to a real account later.
+3. Everything else, one skill at a time. Immediate candidates: the rest of
+   the gojūon, the review session that actually schedules due cards, and a
+   real onboarding/diagnostic flow — none of which exist yet.
 
 ## Open product questions
 
