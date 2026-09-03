@@ -110,9 +110,89 @@ detect it (`user_skill_mastery`, `user_progress`); the policy does not.
 
 ## Lesson completion
 
-- **TODO — DECISION REQUIRED:** What completes a lesson — reaching the end, or
-  an accuracy threshold? `user_curriculum_progress.score` supports the second;
-  nothing sets it.
-- **TODO — DECISION REQUIRED:** When are SRS cards created — on first exposure
-  within a lesson, or on lesson completion? This is the first question the
-  Hiragana vertical slice will have to answer.
+**Decided**, for the Hiragana vertical slice and as the general model going
+forward.
+
+### The rule
+
+A lesson is complete when:
+
+1. every **required** block has been viewed or interacted with, and
+2. every **required** question has been **successfully completed**.
+
+"Required" is `lesson_content.is_required` (default `true`) — an author can
+mark a block optional (a supplementary aside), but nothing is optional unless
+marked so.
+
+**No accuracy threshold, and no permanent block on a wrong answer.**
+`user_curriculum_progress.score` remains available for a _reading_ of overall
+accuracy, but it does not gate completion. A required question is "successfully
+completed" the first time it is answered correctly — however many attempts
+that takes. Getting something wrong produces feedback and an opportunity to
+retry; it never locks the lesson. This is a product stance, not just an
+implementation default: a lesson that can be permanently blocked by one
+mistake punishes the exact moment a learner is engaging most closely with
+something they don't yet know.
+
+### What "interacted with" means per block type
+
+- **Non-question blocks** (`prose`, `kana`, `vocabulary`, `kanji`, `grammar`,
+  `reading`, `listening`) are satisfied by _presentation_ — the block was
+  reached and shown. There is nothing to get right or wrong about reading a
+  card or hearing an audio clip.
+- **`question` blocks** are satisfied only by a **correct** response, per the
+  rule above. Reaching a question is not the same as completing it.
+
+### Persistence
+
+Progress is stored in `user_curriculum_progress.progress_state`
+(`jsonb`, added by `20260904002000_lesson_progress_state.sql`), shaped as
+`LessonProgressState` in `src/types/content.ts`:
+
+```ts
+type LessonProgressState = {
+  completedBlockIds: string[]; // satisfied non-question blocks
+  questions: Record<
+    string, // lesson_content.question_id
+    { attempts: number; completed: boolean; lastAnsweredAt: string }
+  >;
+};
+```
+
+- Written incrementally, as each block or question is satisfied — not only at
+  the end of the lesson. This is what makes refresh/close-tab safe: on reload,
+  the lesson player reads `progress_state` back and resumes at the first
+  unsatisfied required block, rather than the start.
+- `questions[id].completed` only ever transitions `false → true`. A later
+  wrong answer on an already-completed question (e.g. the learner revisits it)
+  must not regress it — that would make the lesson "un-complete" itself, which
+  is not a state the product wants.
+- `user_curriculum_progress.status` is derived from `progress_state` against
+  the lesson's required blocks, not tracked independently of it: `not_started`
+  while `progress_state` is empty, `in_progress` once any block or question
+  has been satisfied, `completed` once every required block and question has.
+  The existing check constraint
+  (`(status = 'completed') = (completed_at is not null)`) still holds —
+  `completed_at` is stamped exactly when that derivation flips to `completed`.
+- Storage is deliberately jsonb rather than a normalised child table: this is
+  read back whole, for one lesson, for one learner, to resume a session — never
+  queried across learners or lessons. See DATABASE.md § "Lesson content" for
+  the reasoning.
+
+### SRS interaction
+
+Card creation is a _consequence_ of the same event that marks a question
+`completed`, not a separate trigger the lesson engine has to track twice — see
+[SRS.md](./SRS.md#card-creation): a card is created after meaningful practice,
+which for a lesson question is exactly the moment
+`questions[id].completed` first flips to `true`.
+
+### Still open
+
+- **TODO — DECISION REQUIRED:** Can a learner move to the next unit or level
+  with some lessons still `in_progress` (started but not completed)? Not
+  needed to build the Hiragana slice, since it is one lesson.
+- **TODO — DECISION REQUIRED:** Does leaving a lesson mid-way and returning
+  count as a new `attempts` increment on `user_curriculum_progress`, or only a
+  wrong answer on a question does? `attempts` exists on the table; its exact
+  semantics are not yet pinned down.

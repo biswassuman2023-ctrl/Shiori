@@ -73,9 +73,10 @@ ids change.
 
 - **TODO — DECISION REQUIRED:** Must a lesson be completed to unlock the next
   one, or is the whole level open once entered?
-- **TODO — DECISION REQUIRED:** What counts as "completed"? Reaching the end,
-  or an accuracy threshold? `user_curriculum_progress.score` exists for the
-  second reading; nothing sets it.
+- ~~What counts as "completed"?~~ **Resolved** — see
+  [LEARNING-ENGINE.md](./LEARNING-ENGINE.md#lesson-completion). Every required
+  block viewed and every required question answered correctly at least once;
+  no accuracy threshold, no permanent block on a wrong answer.
 - **TODO — DECISION REQUIRED:** Can a learner move to the next level with
   unfinished lessons behind them?
 - **TODO — DECISION REQUIRED:** The unit breakdown for each of the seven

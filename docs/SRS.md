@@ -35,40 +35,90 @@ replayed from: with a complete log, switching algorithms means recomputing
 everyone's schedule from their real history rather than resetting it. RLS
 enforces append-only — a learner can insert and read, never update or delete.
 
-## The algorithm is not chosen yet
+## Algorithm: FSRS — decided, not yet implemented
 
-**TODO — DECISION REQUIRED: SM-2 or FSRS.**
+**Decided:** the scheduler will be FSRS (Free Spaced Repetition Scheduler),
+not SM-2.
 
-The schema is deliberately algorithm-agnostic. The columns above are the ones
-_every_ mainstream scheduler needs; anything specific to one — FSRS's stability
-and difficulty, SM-2's ease factor — lives in `scheduler_state`. The choice can
-therefore be made, and later changed, without a migration.
+The schema was, and remains, deliberately algorithm-agnostic: the columns
+above are the ones _every_ mainstream scheduler needs, and anything specific
+to one lives in `scheduler_state` (jsonb) — for FSRS, that means per-card
+stability and difficulty. Choosing FSRS now required no migration, and
+changing the choice later still would not.
 
-Sketch of the trade-off, for when the decision is made:
+Why FSRS over SM-2: measurably better accuracy, at the cost of wanting a
+corpus of real review data to fit its parameters against — data that does not
+exist until reviews start happening. Because `srs_reviews` is a complete,
+append-only log from day one, that ordering is not a problem: FSRS's default
+parameters are a reasonable starting point, and can be refit against real
+`srs_reviews` history once enough of it exists, with no reset for existing
+learners.
 
-|             | SM-2             | FSRS                               |
-| ----------- | ---------------- | ---------------------------------- |
-| Complexity  | Small, ~30 lines | Substantially larger               |
-| Accuracy    | Adequate         | Better, measurably                 |
-| Tuning      | Fixed constants  | Parameters fit to real review logs |
-| Data needed | None             | A corpus of reviews to fit against |
-
-FSRS wants data that does not exist yet; SM-2 needs none. Starting on SM-2 and
-migrating later is viable **precisely because** `srs_reviews` is a complete
-append-only log.
-
-The scheduler will be a pure module — `(card, rating, now) → next card state` —
-with no database access, so it is testable in isolation and swappable.
+**Not implemented.** The scheduler will be a pure module —
+`(card, rating, now) → next card state` — with no database access of its own,
+so it is testable in isolation and swappable. It is not built in this pass:
+`srs_cards.scheduler` stays `'unset'` and no code path creates or advances a
+card yet. This document records the decision so the review engine has
+somewhere to start from, not an implementation.
 
 ## Card creation
 
-- **TODO — DECISION REQUIRED:** When is a card created? On first exposure in a
-  lesson, or on lesson completion? The Hiragana slice forces this decision.
-- **TODO — DECISION REQUIRED:** Which directions are created for which item
-  types? A kana character plausibly needs `recognition` and `recall`; a
-  listening lesson plausibly needs none.
+The general rule, independent of any specific item type:
+
+> **A card is created after the learner completes meaningful practice on an
+> item — not merely when the item is displayed.**
+
+Seeing a kana character rendered in a lesson block is not evidence the learner
+did anything with it; answering a question about it is. Creating cards on
+display would seed the review queue with items the learner never actually
+engaged with, which is a worse first review experience than creating the card
+slightly later, after real practice.
+
+"Meaningful practice" is intentionally defined at the block/question level via
+`user_curriculum_progress.progress_state` (see
+[LEARNING-ENGINE.md](./LEARNING-ENGINE.md#lesson-completion)) rather than as a
+separate SRS-specific concept — a question the lesson engine already counts as
+_completed_ is the same event that should trigger card creation.
+
+### The Hiragana vertical slice, specifically
+
+For the first slice, exactly **two** review directions are created per kana
+item once it has been meaningfully practised:
+
+| Direction (product term) | `srs_direction` value | What the learner is shown | What they produce   |
+| ------------------------ | --------------------- | ------------------------- | ------------------- |
+| Character → sound        | `recognition`         | The kana glyph (あ)       | Its sound / reading |
+| Sound → character        | `recall`              | Audio, or the reading     | The kana glyph      |
+
+**Not created yet:** a writing-production direction (drawing or typing the
+character from memory). The `srs_direction` enum can gain a value for it later
+(`alter type ... add value`) without touching existing cards, and
+`srs_cards`'s unique constraint is already `(user_id, item_id, direction)` —
+adding a third direction is a new row per existing item, not a schema change.
+
+This mapping is specific to kana. `recognition` and `recall` are deliberately
+generic names (not `kana_to_sound` / `sound_to_kana`) because the same two
+directions apply, with the same meaning — "given the target, produce what it
+maps to" vs. "given what it maps to, produce the target" — to vocabulary and
+kanji later. `listening` is reserved for dedicated listening-comprehension
+content (`listening_lessons`), not reused here for "hear a sound, produce a
+character" — conflating the two would make `listening` mean two different
+things depending on content type.
+
+A card represents **this learner's review relationship with one content item
+in one direction** — not the item itself, and not the lesson it was learned
+in. The same kana item's two cards can be at completely different points in
+their schedules, and that is the intended behaviour, not an edge case to
+special-case around.
+
+### Still open
+
 - **TODO — DECISION REQUIRED:** Are cards ever created outside a lesson — from
-  exploration, or from a diagnostic answer?
+  free exploration, or from a diagnostic answer? Out of scope for the Hiragana
+  slice, which only creates cards from lesson practice.
+- **TODO — DECISION REQUIRED:** The direction set for vocabulary, kanji,
+  grammar, reading and listening content, once each is built. Kana's mapping
+  above is a template, not a precedent that automatically extends.
 
 ## Session behaviour
 

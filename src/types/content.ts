@@ -74,3 +74,41 @@ export type LessonBlock = {
   itemIds: string[];
   questionId: string | null;
 };
+
+/* -------------------------------------------------------------------------- */
+/* Lesson progress                                                             */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Shape of `user_curriculum_progress.progress_state`.
+ *
+ * Block-level state within one lesson, for one learner. This is what lets a
+ * refresh or a closed tab resume in the right place and lets lesson
+ * completion be computed rather than asserted. See docs/LEARNING-ENGINE.md
+ * ("Lesson completion").
+ *
+ * Stored as jsonb and read back whole for a single lesson — never queried
+ * into — which is what makes this type, not a migration, the place to change
+ * the shape while the lesson engine is still being built.
+ */
+export type LessonProgressState = {
+  /** IDs of `lesson_content` blocks a required, non-question block has satisfied. */
+  completedBlockIds: string[];
+  /** Per-question attempt state, keyed by `lesson_content.question_id`. */
+  questions: Record<string, QuestionProgress>;
+};
+
+export type QuestionProgress = {
+  attempts: number;
+  /**
+   * True once this question has been answered correctly at least once.
+   * A wrong answer never regresses this — see docs/LEARNING-ENGINE.md.
+   */
+  completed: boolean;
+  lastAnsweredAt: string;
+};
+
+/** An empty, valid `LessonProgressState` — the value a new lesson attempt starts from. */
+export function emptyLessonProgressState(): LessonProgressState {
+  return { completedBlockIds: [], questions: {} };
+}
