@@ -1,0 +1,12 @@
+# Normalise line endings. Prettier writes LF; without this, Windows checkouts
+# produce diffs that are pure CRLF noise.
+* text=auto eol=lf
+
+# Binary and generated files git should not try to diff or merge.
+*.png binary
+*.jpg binary
+*.webp binary
+*.woff2 binary
+*.mp3 binary
+package-lock.json -diff linguist-generated
+src/types/database.generated.ts linguist-generated

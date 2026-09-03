@@ -1,0 +1,124 @@
+@import "tailwindcss";
+
+/* ===========================================================================
+   DESIGN TOKENS
+   ---------------------------------------------------------------------------
+   Single source of truth for the visual system. Tailwind v4 reads `@theme`
+   and emits both CSS custom properties and matching utilities, so every token
+   below is usable as `bg-surface`, `text-ink-muted`, `rounded-card`, etc.
+
+   Rules of engagement (see docs/DESIGN-SYSTEM.md):
+     - Components reference tokens. Components never hardcode hex, px radii,
+       or arbitrary spacing values.
+     - New token => add it here first, then use it.
+   =========================================================================== */
+
+@theme {
+  /* ---- Color: canvas ---------------------------------------------------- */
+  --color-canvas: #f7f3ea; /* page background — warm paper */
+  --color-surface: #fffdf8; /* cards, sheets, raised areas */
+  --color-border: #e5ded3; /* hairlines, dividers, card edges */
+
+  /* ---- Color: text ------------------------------------------------------ */
+  --color-ink: #292725; /* primary text */
+  --color-ink-secondary: #77716a; /* supporting text, labels */
+  --color-ink-muted: #a49e95; /* metadata, placeholders, disabled */
+
+  /* ---- Color: accents ---------------------------------------------------
+     Each accent carries meaning. Reaching for one outside its role is how a
+     palette turns to mush — check docs/DESIGN-SYSTEM.md before doing it. */
+  --color-coral: #e98278; /* primary action, active state, emphasis */
+  --color-blue: #8ea9c1; /* information, reading, calm secondary */
+  --color-sage: #a9b89f; /* success, mastery, growth */
+  --color-yellow: #e7c878; /* attention, streaks, highlights */
+
+  /* ---- Typography ------------------------------------------------------- */
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Japanese text MUST use this stack. A generic sans-serif fallback resolves to
+     Chinese glyph forms on many systems (骨 / 直 / today's 今 differ by locale). */
+  --font-jp:
+    var(--font-noto-sans-jp), "Hiragino Sans", "Yu Gothic", "Meiryo", "Noto Sans CJK JP", sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", "Source Code Pro", monospace;
+
+  /* ---- Spacing ----------------------------------------------------------
+     8px system. Tailwind's default 4px step is kept for optical adjustments
+     (`p-1` = 4px), but layout rhythm should land on even steps. */
+  --spacing: 0.25rem;
+
+  /* ---- Shape ------------------------------------------------------------ */
+  --radius-control: 0.625rem; /* 10px — inputs, chips, small controls */
+  --radius-control-lg: 0.75rem; /* 12px */
+  --radius-button: 0.875rem; /* 14px */
+  --radius-button-lg: 1rem; /* 16px */
+  --radius-card: 1.25rem; /* 20px */
+  --radius-card-lg: 1.5rem; /* 24px */
+  --radius-feature: 1.75rem; /* 28px — hero panels, large feature surfaces */
+
+  /* ---- Elevation --------------------------------------------------------
+     Warm-tinted shadows. Neutral grey shadows read cold against paper. */
+  --shadow-hairline: 0 1px 2px 0 rgb(41 39 37 / 0.04);
+  --shadow-raised: 0 1px 2px 0 rgb(41 39 37 / 0.04), 0 2px 8px -2px rgb(41 39 37 / 0.06);
+  --shadow-lifted: 0 2px 4px -1px rgb(41 39 37 / 0.05), 0 8px 24px -6px rgb(41 39 37 / 0.1);
+
+  /* ---- Motion -----------------------------------------------------------
+     Calm, not bouncy. Nothing in this product should feel like a slot machine. */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --animate-duration-fast: 120ms;
+  --animate-duration-base: 200ms;
+  --animate-duration-slow: 320ms;
+}
+
+/* ===========================================================================
+   BASE
+   =========================================================================== */
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Japanese text needs looser leading than Latin at the same size. */
+  :lang(ja) {
+    font-family: var(--font-jp);
+    line-height: 1.8;
+  }
+
+  /* Ruby (furigana) defaults. Browsers size ruby text inconsistently. */
+  ruby {
+    ruby-align: center;
+  }
+
+  rt {
+    font-size: 0.5em;
+    color: var(--color-ink-secondary);
+    user-select: none;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-coral);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
