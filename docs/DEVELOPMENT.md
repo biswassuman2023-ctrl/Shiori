@@ -88,25 +88,19 @@ is a decision to record here, not a convenience.
 
 ### Database types
 
-`src/types/database.generated.ts` is meant to be **generated** — normally you
-never hand-edit it, and `supabase.from("levels")` simply doesn't typecheck
-until you run `npm run db:types`. That remains the rule.
+`src/types/database.generated.ts` is **generated**. Do not hand-edit it.
+`supabase.from("levels")` doesn't typecheck until you run `npm run db:types`
+against a running local stack (`npm run db:start` first).
 
-**Current exception, and why it exists:** as of the Hiragana vertical slice,
-this file is a hand-authored stand-in, not real CLI output — Docker has never
-been available in this environment, so `db:types` has never run against a real
-Postgres instance. The file's own header says so prominently and lists exactly
-what it covers: only the tables the current slice queries (`levels`, `units`,
-`lessons`, `lesson_content`, `lesson_content_items`, `kana`, `media_assets`,
-`questions`, `question_options`, `user_curriculum_progress`, `srs_cards`) —
-deliberately not the full schema, so nothing accidentally typechecks against a
-table shape nobody has verified.
-
-The moment Docker is available, run `npm run db:reset && npm run db:types` and
-this file is **overwritten wholesale** by the real thing — there is nothing in
-it worth preserving by hand. Until then, treat every type derived from it as
-"believed correct against the migrations, not verified against Postgres" — the
-same caveat that applies to the migrations themselves.
+It briefly held a hand-authored interim stand-in during the Hiragana vertical
+slice, while Docker was unavailable in this environment — scoped to only the
+tables that slice queried, clearly labeled as unverified. That has since been
+replaced by real `supabase gen types` output, run against the actual local
+Postgres instance once Docker became available; the query code typechecked
+against it without changes, which is the strongest evidence the interim file
+was accurate. If this file is ever regenerated (which fully overwrites it —
+never merge into it by hand) after a migration adds a table or column, commit
+the regenerated file alongside the migration.
 
 Use the helpers in `src/types/database.ts`:
 
@@ -207,3 +201,26 @@ in the same migration that creates it.
   `RUN_DB_DEPENDENT_E2E=1` and does not run by default — it needs a seeded
   local Supabase stack, which needs Docker. See the note at the top of that
   file.
+- `next dev` blocks its HMR websocket for any origin not listed in
+  `allowedDevOrigins`; `next.config.ts` allows `127.0.0.1` because that's what
+  Playwright's e2e config navigates to. Without it, the blocked HMR channel
+  stalls client-side hydration/effects on that origin — the whole app hangs on
+  "Loading your progress…" with no thrown error, not just a missing live-reload
+  feature. If a route is ever accessed from a different dev origin (a LAN IP,
+  a tunnel), add it here too — production (`next start`) is unaffected, since
+  HMR doesn't exist there.
+- **Known flake, dev-mode only:** React Strict Mode double-invokes
+  `LessonPlayer`'s bootstrap effect. Both invocations call
+  `ensureSession()` (`src/lib/supabase/ensure-session.ts`) on the same shared
+  browser Supabase client; if both see no session and both call
+  `signInAnonymously()`, whichever anonymous session the client applies _last_
+  becomes "current" for every subsequent request — including the "cancelled"
+  invocation's own save, whose request body still carries _its own_
+  `signInAnonymously()` result as `user_id`. When those two disagree, RLS
+  correctly rejects the mismatched write (`42501`), surfacing briefly as
+  "Could not save progress." Confirmed dev-only: a production build
+  (`next start`) makes exactly one anonymous sign-in and never hits this.
+  Not fixed — the smallest fix is de-duplicating concurrent bootstrap calls
+  (e.g. a module-level in-flight promise keyed by client instance) rather than
+  relying on the `cancelled` flag, which only guards state updates, not the
+  underlying network calls.

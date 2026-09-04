@@ -35,11 +35,9 @@ npm run verify
 
 - `npm run typecheck` alone fails on a clean checkout: `PageProps` and
   `LayoutProps` are generated into `.next/types` by `next build`. Build first.
-- `src/types/database.generated.ts` is currently a **hand-authored interim
-  stand-in** (Docker has never been available to run `npm run db:types` for
-  real), covering only the tables the Hiragana slice queries. Its own header
-  says so. Adding a query against a table not listed there needs that table
-  added to this file first — see docs/DEVELOPMENT.md "Database types".
+- `src/types/database.generated.ts` is real `supabase gen types` output,
+  verified against a running local stack. Never hand-edit it — regenerate
+  with `npm run db:types` after any migration changes a table shape.
 - The server Supabase client must be created per request. A module-level
   singleton leaks sessions between users.
 - Japanese text needs `lang="ja"`, or it renders in a Chinese font on many

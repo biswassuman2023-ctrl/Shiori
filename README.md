@@ -20,9 +20,12 @@ slice is built: `/learn/hiragana/gojuon/a-i-u-e-o` — a real, database-backed
 lesson teaching あいうえお, with practice, retry, progress persistence and SRS
 card creation. Every other route still renders a placeholder.
 
-Not yet run against a live database in this environment — see
-[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for exactly what that leaves
-unverified.
+Verified end-to-end against a real local Supabase/Postgres instance: schema,
+seed data, the full lesson flow, progress persistence across reloads, and SRS
+card creation and idempotency. `npm run test:e2e -- lesson.spec.ts` needs
+`RUN_DB_DEPENDENT_E2E=1` and a seeded local stack; one of its four tests is a
+known dev-mode-only flake (see docs/DEVELOPMENT.md "Known gaps") that does not
+reproduce in a production build.
 
 Next: everything else, one skill at a time — see
 [docs/PRODUCT.md](docs/PRODUCT.md) ("Build order").

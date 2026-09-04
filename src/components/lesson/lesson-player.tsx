@@ -303,8 +303,19 @@ export function LessonPlayer({ lesson }: { lesson: LessonData }) {
               // runtime, rather than a static per-lesson component tree, *is* the
               // architecture (see docs/LEARNING-ENGINE.md "The rendering
               // pipeline"), not an oversight this rule happens to be catching.
+              //
+              // `key={currentBlock.id}` is load-bearing, not decoration: two
+              // consecutive question blocks render the same component *type*
+              // (QuestionBlock) at the same JSX position, so without a key
+              // React treats them as one continuing instance and preserves its
+              // `useState` -- including QuestionBlock's `isCompleted`, seeded
+              // once from `existing?.completed` at mount. Answering question 1
+              // correctly would otherwise leave every later question rendered
+              // permanently disabled, having inherited question 1's completed
+              // state instead of its own. The key forces a real remount (and a
+              // fresh `useState` initializer) on every block change.
               // eslint-disable-next-line react-hooks/static-components
-              <Renderer block={currentBlock} />
+              <Renderer key={currentBlock.id} block={currentBlock} />
             ) : (
               <p className="text-sm text-ink-muted">
                 This block isn&apos;t supported in this build yet — continuing.
