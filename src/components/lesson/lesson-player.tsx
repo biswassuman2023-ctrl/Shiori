@@ -21,6 +21,7 @@ import {
 import { ensureSrsCard } from "@/lib/lesson-progress/srs";
 import { ensureSession } from "@/lib/supabase/ensure-session";
 import { cn } from "@/lib/utils/cn";
+import { getErrorMessage } from "@/lib/utils/error-message";
 import type { LessonProgressState } from "@/types/content";
 import type { LessonProgressStatus } from "@/types/domain";
 import type { LessonBlockData, LessonData, ResolvedQuestion } from "@/types/lesson";
@@ -109,13 +110,23 @@ export function LessonPlayer({ lesson }: { lesson: LessonData }) {
             rowExistedOnLoad.current = true;
           } catch (error) {
             if (!cancelled) {
-              setErrorMessage(error instanceof Error ? error.message : "Could not save progress.");
+              // The detailed cause (see getErrorMessage's doc comment on why
+              // `instanceof Error` can't be trusted here) goes to the console for
+              // diagnosis; the banner stays generic -- a learner has no use for a
+              // Postgres constraint name.
+              console.error(
+                "Failed to save initial lesson progress:",
+                getErrorMessage(error),
+                error,
+              );
+              setErrorMessage("Could not save progress.");
             }
           }
         }
       } catch (error) {
         if (cancelled) return;
-        setErrorMessage(error instanceof Error ? error.message : "Something went wrong.");
+        console.error("Failed to load the lesson:", getErrorMessage(error), error);
+        setErrorMessage("Something went wrong.");
         setPhase("error");
       }
     }
@@ -142,7 +153,8 @@ export function LessonPlayer({ lesson }: { lesson: LessonData }) {
         });
         rowExistedOnLoad.current = true;
       } catch (error) {
-        setErrorMessage(error instanceof Error ? error.message : "Could not save progress.");
+        console.error("Failed to save lesson progress:", getErrorMessage(error), error);
+        setErrorMessage("Could not save progress.");
       }
     },
     [userId, lesson.id, supabase],
@@ -188,10 +200,13 @@ export function LessonPlayer({ lesson }: { lesson: LessonData }) {
         const question = findQuestionById(lesson.blocks, questionId);
         const intent = question ? srsCardIntentFor(question, outcome) : null;
         if (intent && userId) {
-          void ensureSrsCard(supabase, {
+          ensureSrsCard(supabase, {
             userId,
             itemId: intent.itemId,
             direction: intent.direction,
+          }).catch((error: unknown) => {
+            console.error("Failed to create SRS card:", getErrorMessage(error), error);
+            setErrorMessage("Could not save progress.");
           });
         }
 
